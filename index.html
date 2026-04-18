@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>StudySphere AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --primary: #4F46E5;
+      --primary-light: #EEF2FF;
+      --text: #1E293B;
+      --text-muted: #64748B;
+      --user-bubble: #DBEAFE;
+      --bot-bubble: #F1F5F9;
+      --border: #E2E8F0;
+      --pinned: #FEF3C7;
+      --success: #10B981;
+      --danger: #EF4444;
+      --tag: #E0E7FF;
+      --streak: #F59E0B;
+      --like: #EC4899;
+    }
+
+    [data-theme="dark"] {
+      --bg: #0F172A;
+      --card: #1E293B;
+      --primary: #818CF8;
+      --primary-light: #312E81;
+      --text: #F1F5F9;
+      --text-muted: #94A3B8;
+      --user-bubble: #1E40AF;
+      --bot-bubble: #334155;
+      --border: #334155;
+      --pinned: #713F12;
+      --tag: #3730A3;
+      --streak: #D97706;
+      --like: #DB2777;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 20px;
+      transition: background 0.3s;
+    }
+
+.app {
+      width: 100%;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+      height: calc(100vh - 40px);
+    }
+
+.main { display: flex; flex-direction: column; min-height: 0; }
+.sidebar {
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+.header {
+      text-align: center;
+      margin-bottom: 16px;
+      padding: 16px;
+      background: var(--card);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+
+.header h1 { font-family: 'Outfit', sans-serif; font-size: 1.8rem; color: var(--primary); }
+.user-info { position: absolute; top: 12px; right: 12px; display: flex; gap: 8px; align-items: center; }
+.user-badge { background: var(--primary-light); color: var(--primary); padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+.streak-badge { background: var(--streak); color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px; }
+.tab-btn {
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+.tab-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+.toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.toolbar input {
+      flex: 1;
+      min-width: 150px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+.icon-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+.icon-btn:hover { background: var(--primary-light); color: var(--primary); }
+.icon-btn.liked { color: var(--like); }
+
+.content-area {
+      flex: 1;
+      background: var(--card);
+      border-radius: 20px;
+      padding: 20px;
+      overflow-y: auto;
+      margin-bottom: 12px;
+      border: 1px solid var(--border);
+    }
+
+    #chat { display: flex; flex-direction: column; gap: 16px; }
+.msg { display: flex; flex-direction: column; animation: fadeIn 0.3s ease; position: relative; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.msg-content { padding: 12px 16px; border-radius: 16px; max-width: 85%; line-height: 1.6; font-size: 0.95rem; word-wrap: break-word; }
+.user { align-items: flex-end; }
+.user.msg-content { background: var(--user-bubble); border-bottom-right-radius: 4px; }
+.bot { align-items: flex-start; }
+.bot.msg-content { background: var(--bot-bubble); border-bottom-left-radius: 4px; }
+.sender { font-size: 0.75rem; font-weight: 600; margin-bottom: 4px; color: var(--text-muted); display: flex; align-items: center; gap: 6px; }
+.msg-actions { position: absolute; top: -8px; right: 0; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+.msg:hover.msg-actions { opacity: 1; }
+.msg-actions button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--text-muted); cursor: pointer; padding: 0; }
+
+.input-area { display: flex; gap: 8px; background: var(--card); padding: 12px; border-radius: 16px; border: 1px solid var(--border); align-items: center; }
+    #userInput { flex: 1; padding: 14px 16px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; }
+    #userInput:focus { outline: 2px solid var(--primary); border-color: transparent; }
+.send-btn { padding: 0 24px; height: 48px; border-radius: 12px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; }
+
+.sidebar h3 { font-size: 1rem; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+.sidebar-tools { display: flex; gap: 6px; margin-bottom: 12px; }
+.sidebar-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.sidebar-btn:hover { background: var(--primary-light); color: var(--primary); }
+    #savedList { flex: 1; overflow-y: auto; font-size: 0.85rem; }
+.saved-item { padding: 10px; border-radius: 10px; background: var(--bg); margin-bottom: 8px; border: 1px solid var(--border); cursor: pointer; }
+.saved-item:hover { background: var(--primary-light); }
+
+    /* Time Pass Section */
+.activity-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.activity-card { padding: 16px; border-radius: 16px; background: var(--bg); border: 1px solid var(--border); cursor: pointer; text-align: center; transition: all 0.2s; }
+.activity-card:hover { background: var(--primary-light); transform: translateY(-2px); }
+.activity-card h4 { margin-bottom: 4px; color: var(--primary); }
+.activity-card p { font-size: 0.8rem; color: var(--text-muted); }
+
+    /* Mock Test */
+.quiz-container { text-align: center; }
+.quiz-q { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+.quiz-options { display: grid; gap: 10px; margin-bottom: 20px; }
+.quiz-option { padding: 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg); cursor: pointer; text-align: left; transition: all 0.2s; }
+.quiz-option:hover { border-color: var(--primary); }
+.quiz-option.correct { background: var(--success); color: white; border-color: var(--success); }
+.quiz-option.wrong { background: var(--danger); color: white; border-color: var(--danger); }
+.quiz-timer { font-size: 1.2rem; font-weight: 700; color: var(--primary); margin-bottom: 16px; }
+.quiz-score { font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+
+    /* Expert Chat */
+.expert-card { text-align: center; padding: 20px; background: var(--bg); border-radius: 16px; border: 1px solid var(--border); }
+.expert-card img { width: 80px; height: 80px; border-radius: 50%; margin-bottom: 12px; }
+.expert-card h4 { margin-bottom: 4px; }
+.expert-card p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; }
+.whatsapp-btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 12px; background: #25D366; color: white; font-weight: 600; text-decoration: none; }
+
+    /* Courses Section */
+.filter-tags { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.filter-tag { padding: 6px 12px; border-radius: 20px; background: var(--bg); border: 1px solid var(--border); font-size: 0.8rem; cursor: pointer; transition: all 0.2s; }
+.filter-tag.active { background: var(--primary); color: white; border-color: var(--primary); }
+.course-list { display: flex; flex-direction: column; gap: 12px; }
+.course-card { padding: 16px; border-radius: 16px; background: var(--bg); border: 1px solid var(--border); transition: all 0.2s; }
+.course-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.course-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+.course-title { font-weight: 600; font-size: 0.95rem; margin-bottom: 4px; }
+.course-provider { font-size: 0.8rem; color: var(--text-muted); }
+.course-tags { display: flex; gap: 6px; margin: 8px 0; flex-wrap: wrap; }
+.course-tag { padding: 3px 8px; border-radius: 6px; background: var(--tag); color: var(--primary); font-size: 0.7rem; font-weight: 600; }
+.course-desc { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+.course-actions { display: flex; gap: 8px; }
+.course-btn { flex: 1; padding: 8px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); font-size: 0.8rem; font-weight: 600; cursor: pointer; text-align: center; text-decoration: none; color: var(--text); }
+.course-btn.primary { background: var(--primary); color: white; border-color: var(--primary); }
+
+    /* Community Section */
+.post-box { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+.post-box textarea { width: 100%; padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-family: inherit; resize: none; margin-bottom: 12px; }
+.post-box-actions { display: flex; justify-content: space-between; align-items: center; }
+.post-list { display: flex; flex-direction: column; gap: 16px; }
+.post { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+.post-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.post-user { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.post-user img { width: 36px; height: 36px; border-radius: 50%; }
+.post-time { font-size: 0.75rem; color: var(--text-muted); }
+.post-content { margin-bottom: 12px; line-height: 1.6; }
+.post img { max-width: 100%; border-radius: 12px; margin-top: 8px; }
+.post-actions { display: flex; gap: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.post-action { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 0.85rem; cursor: pointer; background: none; border: none; }
+.post-action:hover { color: var(--primary); }
+.post-action.liked { color: var(--like); font-weight: 600; }
+.comment-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+.comment-input { display: flex; gap: 8px; margin-bottom: 12px; }
+.comment-input input { flex: 1; padding: 8px 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 0.85rem; }
+.comment-list { display: flex; flex-direction: column; gap: 10px; }
+.comment { background: var(--card); padding: 10px; border-radius: 12px; font-size: 0.85rem; }
+.comment-user { font-weight: 600; font-size: 0.8rem; margin-bottom: 4px; }
+.stars { color: var(--streak); font-size: 1rem; }
+.follow-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--primary); background: transparent; color: var(--primary); font-size: 0.75rem; font-weight: 600; cursor: pointer; }
+.follow-btn.following { background: var(--primary); color: white; }
+
+    /* Pomodoro */
+.pomodoro { text-align: center; padding: 20px; background: var(--bg); border-radius: 16px; border: 1px solid var(--border); margin-bottom: 16px; }
+.pomodoro-time { font-size: 2.5rem; font-weight: 700; color: var(--primary); margin: 12px 0; }
+.pomodoro-status { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; }
+.pomodoro-btns { display: flex; gap: 8px; justify-content: center; }
+
+    /* Flashcards */
+.flashcard-container { perspective: 1000px; margin-bottom: 16px; }
+.flashcard { width: 100%; height: 200px; position: relative; transform-style: preserve-3d; transition: transform 0.6s; cursor: pointer; }
+.flashcard.flipped { transform: rotateY(180deg); }
+.flashcard-face { position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+.flashcard-front { background: var(--primary-light); color: var(--primary); }
+.flashcard-back { background: var(--bg); transform: rotateY(180deg); }
+.flashcard-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; }
+
+    /* Leaderboard */
+.leaderboard { background: var(--bg); border-radius: 16px; border: 1px solid var(--border); padding: 16px; margin-bottom: 16px; }
+.leaderboard-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.leaderboard-item:last-child { border-bottom: none; }
+.leaderboard-rank { font-weight: 700; color: var(--primary); width: 30px; }
+
+    /* Auth Modal */
+.modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 100; }
+.modal-content { background: var(--card); padding: 30px; border-radius: 20px; width: 90%; max-width: 400px; border: 1px solid var(--border); }
+.modal-content h2 { margin-bottom: 20px; color: var(--primary); }
+.modal-content input { width: 100%; padding: 12px; margin-bottom: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; }
+.modal-content button { width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--primary); color: white; font-weight: 600; cursor: pointer; margin-bottom: 10px; }
+.modal-toggle { text-align: center; font-size: 0.9rem; color: var(--text-muted); }
+.modal-toggle span { color: var(--primary); cursor: pointer; font-weight: 600; }
+
+.hidden { display: none!important; }
+.msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; }
+    #imageInput, #postImageInput { display: none; }
+
+    @media (max-width: 768px) {
+.app { grid-template-columns: 1fr; }
+.sidebar { display: none; }
+.activity-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="modal" id="authModal">
+    <div class="modal-content">
+      <h2 id="authTitle">Sign Up</h2>
+      <input type="text" id="authName" placeholder="Your Name">
+      <input type="email" id="authEmail" placeholder="Email (for demo only)">
+      <input type="password" id="authPass" placeholder="Password">
+      <button onclick="handleAuth()" id="authBtn">Create Account</button>
+      <div class="modal-toggle">
+        <span id="authSwitch" onclick="toggleAuthMode()">Already have an account? Login</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="app">
+    <div class="main">
+      <div class="header">
+        <div class="user-info">
+          <div class="streak-badge" id="streakBadge"><span class="material-icons-round" style="font-size:14px">local_fire_department</span> 1</div>
+          <div class="user-badge" id="userBadge">Guest</div>
+          <button class="icon-btn" onclick="logout()" title="Logout">
+            <span class="material-icons-round">logout</span>
+          </button>
+        </div>
+        <h1>StudySphere AI</h1>
+        <p style="font-size:0.8rem; color:var(--text-muted); margin-top:8px">Project by: YOUR NAME, Class 10</p>
+      </div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('chat')">AI Chat</button>
+        <button class="tab-btn" onclick="switchTab('community')">Community</button>
+        <button class="tab-btn" onclick="switchTab('timepass')">Time Pass</button>
+        <button class="tab-btn" onclick="switchTab('mocktest')">Mock Test</button>
+        <button class="tab-btn" onclick="switchTab('courses')">Courses</button>
+        <button class="tab-btn" onclick="switchTab('expert')">Expert</button>
+      </div>
+
+      <div class="toolbar" id="chatToolbar">
+        <input type="text" id="searchInput" placeholder="Search chat..." oninput="searchChat()">
+        <button class="icon-btn" onclick="toggleTheme()" title="Dark Mode">
+          <span class="material-icons-round">dark_mode</span>
+        </button>
+        <button class="icon-btn" onclick="exportChatPDF()" title="Export PDF">
+          <span class="material-icons-round">picture_as_pdf</span>
+        </button>
+        <button class="icon-btn" onclick="inviteFriends()" title="Invite">
+          <span class="material-icons-round">person_add</span>
+        </button>
+      </div>
+
+      <div class="content-area">
+        <!-- AI Chat Tab -->
+        <div id="chatTab">
+          <div id="chat">
+            <div class="msg bot" data-id="welcome">
+              <div class="sender">StudySphere AI</div>
+              <div class="msg-content">Hey! Ask me anything. Check Community tab to see what classmates are discussing.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Community Tab -->
+        <div id="communityTab" class="hidden">
+          <div class="post-box">
+            <textarea id="postText" rows="3" placeholder="Ask a doubt, share notes, or review a course..."></textarea>
+            <div class="post-box-actions">
+              <button class="icon-btn" onclick="document.getElementById('postImageInput').click()" title="Add Image">
+                <span class="material-icons-round">image</span>
+              </button>
+              <input type="file" id="postImageInput" accept="image/*" onchange="handlePostImage(event)">
+              <button class="send-btn" onclick="createPost()">Post</button>
+            </div>
+          </div>
+          <div class="post-list" id="postList"></div>
+        </div>
+
+        <!-- Time Pass Tab -->
+        <div id="timepassTab" class="hidden">
+          <h3 style="margin-bottom:16px">Quick Brain Breaks</h3>
+          <div class="activity-grid">
+            <div class="activity-card" onclick="startRiddle()">
+              <h4>🧠 Riddles</h4>
+              <p>5 science riddles</p>
+            </div>
+            <div class="activity-card" onclick="startWordGame()">
+              <h4>🔤 Word Scramble</h4>
+              <p>Unscramble terms</p>
+            </div>
+            <div class="activity-card" onclick="startFact()">
+              <h4>💡 Random Fact</h4>
+              <p>Learn something cool</p>
+            </div>
+            <div class="activity-card" onclick="startMeme()">
+              <h4>😂 Study Meme</h4>
+              <p>For motivation</p>
+            </div>
+          </div>
+          <div id="activityResult" style="margin-top:20px; padding:16px; background:var(--bg); border-radius:12px; display:none;"></div>
+        </div>
+
+        <!-- Mock Test Tab -->
+        <div id="mocktestTab" class="hidden">
+          <div class="leaderboard">
+            <h3 style="margin-bottom:12px">🏆 Your Best Scores</h3>
+            <div id="leaderboardList"></div>
+          </div>
+          <div class="quiz-container" id="quizStart">
+            <h3>Profess<!DOCTYPE html>
+<html>
+<head>
+  <title>StudySphere AI</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #F8FAFC; --card: #FFFFFF; --primary: #4F46E5; --primary-light: #EEF2FF; --text: #1E293B; --text-muted: #64748B; --user-bubble: #DBEAFE; --bot-bubble: #F1F5F9; --border: #E2E8F0; --pinned: #FEF3C7; --success: #10B981; --danger: #EF4444; --tag: #E0E7FF; --streak: #F59E0B; --like: #EC4899;
+    }
+    [data-theme="dark"] {
+      --bg: #0F172A; --card: #1E293B; --primary: #818CF8; --primary-light: #312E81; --text: #F1F5F9; --text-muted: #94A3B8; --user-bubble: #1E40AF; --bot-bubble: #334155; --border: #334155; --pinned: #713F12; --tag: #3730A3; --streak: #D97706; --like: #DB2777;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 20px; transition: background 0.3s; }
+    .app { width: 100%; max-width: 1000px; display: grid; grid-template-columns: 1fr 300px; gap: 20px
+          { id: 7, title: "UN Volunteer Program", provider: "United Nations", type: "internship", cert: true, link: "https://unv.org", desc: "Remote + international exposure, free" },
+      { id: 8, title: "ISRO Online Courses", provider: "ISRO IIRS", type: "science", cert: true, link: "https://elearning.iirs.gov.in", desc: "Free courses on Space Science + GIS" }
+    ];
+
+    const riddles = [
+      {q: "I am the powerhouse of the cell. What am I?", a: "Mitochondria"},
+      {q: "I have a pH less than 7. What am I?", a: "Acid"},
+      {q: "I am the bending of light. What am I?", a: "Refraction"},
+      {q: "I carry oxygen in blood. What am I?", a: "Hemoglobin"},
+      {q: "I am H2O. What am I?", a: "Water"}
+    ];
+
+    const scrambleWords = ["PHOTOSYNTHESIS", "NEWTON", "MITOCHONDRIA", "OXYGEN", "GRAVITY", "EVAPORATION"];
+    const facts = [
+      "Octopuses have 3 hearts and blue blood.",
+      "A day on Venus is longer than its year.",
+      "Bananas are berries, but strawberries aren't.",
+      "Your stomach gets a new lining every 3-4 days.",
+      "Honey never spoils. Edible honey was found in Egyptian tombs."
+    ];
+
+    function init() {
+      if (localStorage.getItem('theme') === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.querySelector('.material-icons-round').textContent = 'light_mode';
+      }
+      if (!currentUser) {
+        authModal.classList.remove('hidden');
+      } else {
+        authModal.classList.add('hidden');
+        updateUserBadge();
+        updateStreak();
+      }
+      loadSavedMessages();
+      renderCourses();
+      renderPosts();
+      renderLeaderboard();
+      if (localStorage.getItem('darkMode') === 'true') toggleTheme();
+    }
+
+    function toggleTheme() {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('theme', 'light');
+        document.querySelector('.material-icons-round').textContent = 'dark_mode';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        localStorage.setItem('theme', 'dark');
+        document.querySelector('.material-icons-round').textContent = 'light_mode';
+      }
+    }
+
+    function toggleAuthMode() {
+      isLoginMode =!isLoginMode;
+      document.getElementById('authTitle').textContent = isLoginMode? 'Login' : 'Sign Up';
+      document.getElementById('authName').classList.toggle('hidden', isLoginMode);
+      document.getElementById('authBtn').textContent = isLoginMode? 'Login' : 'Create Account';
+      document.getElementById('authSwitch').textContent = isLoginMode? 'New here? Sign Up' : 'Already have an account? Login';
+    }
+
+    function handleAuth() {
+      const name = document.getElementById('authName').value.trim();
+      const email = document.getElementById('authEmail').value.trim();
+      const pass = document.getElementById('authPass').value.trim();
+      if (!email ||!pass || (!isLoginMode &&!name)) return alert('Fill all fields');
+
+      if (isLoginMode) {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        const user = users.find(u => u.email === email && u.pass === pass);
+        if (!user) return alert('Wrong email or password');
+        currentUser = user;
+      } else {
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        if (users.find(u => u.email === email)) return alert('Email already registered');
+        currentUser = { name, email, pass, id: Date.now() };
+        users.push(currentUser);
+        localStorage.setItem('users', JSON.stringify(users));
+      }
+      localStorage.setItem('currentUser', JSON.stringify(currentUser));
+      authModal.classList.add('hidden');
+      updateUserBadge();
+      updateStreak();
+    }
+
+    function logout() {
+      localStorage.removeItem('currentUser');
+      currentUser = null;
+      location.reload();
+    }
+
+    function updateUserBadge() {
+      document.getElementById('userBadge').textContent = currentUser? currentUser.name.split(' ')[0] : 'Guest';
+    }
+
+    function updateStreak() {
+      const today = new Date().toDateString();
+      if (streakData.lastDate!== today) {
+        const yesterday = new Date(Date.now() - 86400000).toDateString();
+        streakData.count = streakData.lastDate === yesterday? streakData.count + 1 : 1;
+        streakData.lastDate = today;
+        localStorage.setItem('streakData', JSON.stringify(streakData));
+      }
+      document.getElementById('streakBadge').innerHTML = `<span class="material-icons-round" style="font-size:14px">local_fire_department</span> ${streakData.count}`;
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+      document.querySelectorAll('[id$="Tab"]').forEach(t => t.classList.add('hidden'));
+      document.getElementById(tab + 'Tab').classList.remove('hidden');
+      document.getElementById('chatToolbar').style.display = tab === 'chat'? 'flex' : 'none';
+      document.getElementById('chatInputArea').style.display = tab === 'chat'? 'flex' : 'none';
+    }
+
+    async function sendMessage() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      if (!currentUser) return authModal.classList.remove('hidden');
+
+      addMessage('user', text);
+      userInput.value = '';
+      sendBtn.disabled = true;
+      const typingId = addMessage('bot', 'Thinking...');
+
+      try {
+        const res = await fetch('https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputs: `You are StudySphere AI, a helpful tutor for Class 10 students. Explain clearly and simply. Question: ${text}`,
+            parameters: { max_new_tokens: 300, temperature: 0.7 }
+          })
+        });
+        const data = await res.json();
+        let reply = data[0]?.generated_text || data.generated_text || "I couldn't get that. Try rephrasing.";
+        reply = reply.replace(/You are StudySphere AI.*?Question:.*?/s, '').trim();
+        updateMessage(typingId, reply);
+      } catch (e) {
+        updateMessage(typingId, "I'm having trouble connecting. Please try again in 20 seconds.");
+      }
+      sendBtn.disabled = false;
+    }
+
+    function addMessage(sender, text, image = null) {
+      const id = Date.now();
+      const msgDiv = document.createElement('div');
+      msgDiv.className = `msg ${sender}`;
+      msgDiv.dataset.id = id;
+      msgDiv.innerHTML = `
+        <div class="sender">${sender === 'user'? currentUser.name : 'StudySphere AI'}</div>
+        <div class="msg-content">${text}${image? `<img src="${image}" alt="Uploaded">` : ''}</div>
+        <div class="msg-actions">
+          <button onclick="toggleSave(${id})" title="Save"><span class="material-icons-round" style="font-size:16px">${savedMessages.find(m => m.id === id)? 'bookmark' : 'bookmark_border'}</span></button>
+        </div>
+      `;
+      chat.appendChild(msgDiv);
+      chat.scrollTop = chat.scrollHeight;
+      return id;
+    }
+
+    function updateMessage(id, text) {
+      const msg = document.querySelector(`[data-id="${id}"].msg-content`);
+      if (msg) msg.innerHTML = text;
+    }
+
+    function handleImage(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => addMessage('user', 'Uploaded image:', reader.result);
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+
+    function toggleSave(id) {
+      const msgEl = document.querySelector(`[data-id="${id}"]`);
+      const text = msgEl.querySelector('.msg-content').innerText;
+      const img = msgEl.querySelector('img')?.src;
+      const idx = savedMessages.findIndex(m => m.id === id);
+      if (idx > -1) {
+        savedMessages.splice(idx, 1);
+      } else {
+        savedMessages.push({ id, text, img, date: new Date().toLocaleString() });
+      }
+      localStorage.setItem('savedMessages', JSON.stringify(savedMessages));
+      loadSavedMessages();
+      const btn = msgEl.querySelector('.msg-actions button span');
+      btn.textContent = idx > -1? 'bookmark_border' : 'bookmark';
+    }
+
+    function loadSavedMessages() {
+      savedList.innerHTML = savedMessages.length? '' : '<p style="color:var(--text-muted); font-size:0.8rem;">No saved notes yet</p>';
+      savedMessages.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'saved-item';
+        div.innerHTML = `<strong>${m.date}</strong><br>${m.text.substring(0, 60)}...`;
+        div.onclick = () => {
+          addMessage('bot', m.text, m.img);
+          switchTab('chat');
+        };
+        savedList.appendChild(div);
+      });
+    }
+
+    function searchChat() {
+      const term = document.getElementById('searchInput').value.toLowerCase();
+      document.querySelectorAll('#chat.msg').forEach(msg => {
+        msg.style.display = msg.innerText.toLowerCase().includes(term)? 'flex' : 'none';
+      });
+    }
+
+    function exportChatPDF() {
+      const doc = new jsPDF();
+      let y = 20;
+      doc.setFontSize(16);
+      doc.text('StudySphere AI - Chat Export', 20, y);
+      y += 10;
+      document.querySelectorAll('#chat.msg').forEach(msg => {
+        const text = msg.innerText;
+        const lines = doc.splitTextToSize(text, 170);
+        if (y + lines.length * 7 > 280) { doc.addPage(); y = 20; }
+        doc.setFontSize(10);
+        doc.text(lines, 20, y);
+        y += lines.length * 7 + 5;
+      });
+      doc.save('StudySphere-Chat.pdf');
+    }
+
+    function startRiddle() {
+      const r = riddles[Math.floor(Math.random() * riddles.length)];
+      document.getElementById('activityResult').innerHTML = `<h4>Riddle:</h4><p>${r.q}</p><button class="send-btn" onclick="this.parentElement.innerHTML += '<p><strong>Answer:</strong> ${r.a}</p>'; this.style.display='none'">Show Answer</button>`;
+      document.getElementById('activityResult').style.display = 'block';
+    }
+
+    function startWordGame() {
+      const word = scrambleWords[Math.floor(Math.random() * scrambleWords.length)];
+      const scrambled = word.split('').sort(() => Math.random() - 0.5).join('');
+      document.getElementById('activityResult').innerHTML = `<h4>Unscramble:</h4><p style="font-size:1.5rem; letter-spacing:8px; font-weight:700">${scrambled}</p><button class="send-btn" onclick="this.parentElement.innerHTML += '<p><strong>Answer:</strong> ${word}</p>'; this.style.display='none'">Show Answer</button>`;
+      document.getElementById('activityResult').style.display = 'block';
+    }
+
+    function startFact() {
+      const fact = facts[Math.floor(Math.random() * facts.length)];
+      document.getElementById('activityResult').innerHTML = `<h4>💡 Did You Know?</h4><p>${fact}</p>`;
+      document.getElementById('activityResult').style.display = 'block';
+    }
+
+    function startMeme() {
+      document.getElementById('activityResult').innerHTML = `<h4>Study Motivation 😂</h4><p>"I have a test tomorrow" <br> My brain: *deletes everything*</p><p>Keep going! You got this! 💪</p>`;
+      document.getElementById('activityResult').style.display = 'block';
+    }
+
+    function startMockTest() {
+      quizData = [...mockQuestions].sort(() => Math.random() - 0.5).slice(0, 10);
+      currentQ = 0; score = 0;
+      document.getElementById('quizStart').classList.add('hidden');
+      document.getElementById('quizResult').classList.add('hidden');
+      document.getElementById('quizActive').classList.remove('hidden');
+      loadQuestion();
+      startTimer(300);
+    }
+
+    function startTimer(seconds) {
+      let time = seconds;
+      timer = setInterval(() => {
+        const m = Math.floor(time / 60).toString().padStart(2, '0');
+        const s = (time % 60).toString().padStart(2, '0');
+        document.getElementById('quizTimer').textContent = `${m}:${s}`;
+        if (--time < 0) { clearInterval(timer); endTest(); }
+      }, 1000);
+    }
+
+    function loadQuestion() {
+      if (currentQ >= quizData.length) return endTest();
+      const q = quizData[currentQ];
+      document.getElementById('quizQuestion').textContent = `Q${currentQ + 1}. ${q.q}`;
+      const opts = document.getElementById('quizOptions');
+      opts.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const div = document.createElement('div');
+        div.className = 'quiz-option';
+        div.textContent = opt;
+        div.onclick = () => selectOption(i);
+        opts.appendChild(div);
+      });
+      document.getElementById('nextBtn').style.display = 'none';
+    }
+
+    function selectOption(i) {
+      const q = quizData[currentQ];
+      const options = document.querySelectorAll('.quiz-option');
+      options.forEach(o => o.style.pointerEvents = 'none');
+      if (i === q.a) {
+        options[i].classList.add('correct');
+        score++;
+      } else {
+        options[i].classList.add('wrong');
+        options[q.a].classList.add('correct');
+      }
+      document.getElementById('nextBtn').style.display = 'block';
+    }
+
+    function nextQuestion() {
+      currentQ++;
+      loadQuestion();
+    }
+
+    function endTest() {
+      clearInterval(timer);
+      document.getElementById('quizActive').classList.add('hidden');
+      document.getElementById('quizResult').classList.remove('hidden');
+      document.getElementById('finalScore').textContent = `${score}/10`;
+      let msg = score >= 8? "Excellent! You’re ready for boards!" : score >= 6? "Good! Revise weak topics." : "Keep practicing. You can do it!";
+      document.getElementById('scoreMsg').textContent = msg;
+      document.getElementById('certBtn').style.display = score >= 8? 'block' : 'none';
+      testScores.push({score, date: new Date().toLocaleDateString()});
+      if (testScores.length > 5) testScores.shift();
+      localStorage.setItem('testScores', JSON.stringify(testScores));
+      renderLeaderboard();
+    }
+
+    function renderLeaderboard() {
+      const list = document.getElementById('leaderboardList');
+      if (!testScores.length) {
+        list.innerHTML = '<p style="color:var(--text-muted); font-size:0.8rem;">No tests taken yet</p>';
+        return;
+      }
+      list.innerHTML = '';
+      testScores.sort((a,b) => b.score - a.score).forEach((t, i) => {
+        const div = document.createElement('div');
+        div.className = 'leaderboard-item';
+        div.innerHTML = `<span><span class="leaderboard-rank">${i+1}.</span> ${t.date}</span><strong>${t.score}/10</strong>`;
+        list.appendChild(div);
+      });
+    }
+
+    function downloadCertificate() {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text('Certificate of Achievement', 105, 40, {align: 'center'});
+      doc.setFontSize(14);
+      doc.text('This certifies that', 105, 60, {align: 'center'});
+      doc.setFontSize(18);
+      doc.text(currentUser.name, 105, 75, {align: 'center'});
+      doc.setFontSize(14);
+      doc.text(`has successfully scored ${score}/10 in`, 105, 90, {align: 'center'});
+      doc.text('StudySphere AI Mock Test - Class 10 Science', 105, 100, {align: 'center'});
+      doc.text(`Date: ${new Date().toLocaleDateString()}`, 105, 120, {align: 'center'});
+      doc.save(`StudySphere-Certificate-${currentUser.name}.pdf`);
+    }
+
+    function renderCourses() {
+      courseList.innerHTML = '';
+      coursesData.filter(c => activeFilter === 'all' || c.type === activeFilter).forEach(c => {
+        const div = document.createElement('div');
+        div.className = 'course-card';
+        const reviews = courseReviews[c.id] || [];
+        const avgRating = reviews.length? (reviews.reduce((a,b) => a + b.rating, 0) / reviews.length).toFixed(1) : 0;
+        div.innerHTML = `
+          <div class="course-header">
+            <div>
+              <div class="course-title">${c.title}</div>
+              <div class="course-provider">${c.provider}</div>
+            </div>
+            ${avgRating > 0? `<div class="stars">${'★'.repeat(Math.round(avgRating))}${'☆'.repeat(5-Math.round(avgRating))}</div>` : ''}
+          </div>
+          <div class="course-tags">
+            ${c.cert? '<span class="course-tag">CERTIFICATE</span>' : ''}
+            <span class="course-tag">FREE</span>
+            <span class="course-tag">${c.type.toUpperCase()}</span>
+          </div>
+          <div class="course-desc">${c.desc}</div>
+          <div class="course-actions">
+            <a href="${c.link}" target="_blank" class="course-btn primary">View Course</a>
+            <button class="course-btn" onclick="showReviewModal(${c.id})">Reviews (${reviews.length})</button>
+          </div>
+        `;
+        courseList.appendChild(div);
+      });
+    }
+
+    function filterCourses(type) {
+      activeFilter = type;
+      document.querySelectorAll('.filter-tag').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      renderCourses();
+    }
+
+    function showReviewModal(courseId) {
+      const reviews = courseReviews[courseId] || [];
+      let html = `<h3>Reviews</h3>`;
+      reviews.forEach(r => {
+        html += `<div class="comment"><div class="comment-user">${r.user} <span class="stars">${'★'.repeat(r.rating)}</span></div>${r.text}</div>`;
+      });
+      html += `<div style="margin-top:16px"><textarea id="reviewText" rows="3" placeholder="Write your review..." style="width:100%; padding:10px; border-radius:10px; border:1px solid var(--border); margin-bottom:8px"></textarea>
+        <select id="reviewRating" style="padding:8px; border-radius:8px; margin-bottom:8px"><option value="5">5 Stars</option><option value="4">4 Stars</option><option value="3">3 Stars</option><option value="2">2 Stars</option><option value="1">1 Star</option></select>
+        <button class="send-btn" onclick="addReview(${courseId})">Submit Review</button></div>`;
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.innerHTML = `<div class="modal-content">${html}</div>`;
+      modal.onclick = (e) => { if(e.target === modal) modal.remove(); };
+      document.body.appendChild(modal);
+    }
+
+    function addReview(courseId) {
+      const text = document.getElementById('reviewText').value.trim();
+      const rating = parseInt(document.getElementById('reviewRating').value);
+      if (!text) return alert('Write a review');
+      if (!courseReviews[courseId]) courseReviews[courseId] = [];
+      courseReviews[courseId].push({user: currentUser.name, text, rating, date: new Date().toLocaleDateString()});
+      localStorage.setItem('courseReviews', JSON.stringify(courseReviews));
+      document.querySelector('.modal').remove();
+      renderCourses();
+    }
+
+    function createPost() {
+      const text = document.getElementById('postText').value.trim();
+      if (!text &&!tempPostImage) return alert('Write something or add image');
+      const post = {
+        id: Date.now(),
+        user: currentUser.name,
+        userId: currentUser.id,
+        text,
+        image: tempPostImage,
+        time: new Date().toLocaleString(),
+        likes: [],
+        comments: []
+      };
+      posts.unshift(post);
+      localStorage.setItem('posts', JSON.stringify(posts));
+      document.getElementById('postText').value = '';
+      tempPostImage = null;
+      renderPosts();
+    }
+
+    function handlePostImage(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => { tempPostImage = reader.result; };
+      reader.readAsDataURL(file);
+    }
+
+    function renderPosts() {
+      postList.innerHTML = '';
+      const filtered = posts.filter(p => following.length === 0 || following.includes(p.userId) || p.userId === currentUser.id);
+      if (!filtered.length) {
+        postList.innerHTML = '<p style="color:var(--text-muted); text-align:center; padding:20px
