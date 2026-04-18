@@ -1,10 +1,10 @@
-# Study-ai-bot
+# StudySphere AI
 Study sphere 
 # StudySphere AI 🎓
 
 **All-in-one study platform for Class 10 students**
 
-Live Demo: https://yourname.github.io/studysphere-ai/
+Live Demo: https://Vaishali.github.io/studysphere-ai/
 
 ### ✨ Features
 - **AI Chat Tutor** - 24/7 doubt solving with Hugging Face Llama-3
